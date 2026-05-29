@@ -294,6 +294,54 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
   .section-title { font-size: 1.2rem; }
   .admin-panel { border-radius: 24px 24px 0 0; }
 }
+
+/* Price Tiers for Farsan */
+.price-tier-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.price-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, var(--saffron) 0%, #E8872E 100%);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(255, 153, 51, 0.25);
+  white-space: nowrap;
+}
+.price-tier .tier-amount {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.price-tier .tier-size {
+  opacity: 0.9;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+.price-tier-divider {
+  color: var(--text-light);
+  font-size: 0.75rem;
+  opacity: 0.5;
+  align-self: center;
+}
+
+/* Admin hint for farsan pricing */
+.price-hint {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+@media (max-width: 480px) {
+  .price-tier { font-size: 0.8rem; padding: 5px 10px; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <base target="_blank">
@@ -318,7 +366,7 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
     <div class="header-nav">
       <button onclick="scrollToSection('morningBlock')">☀️ Morning Menu</button>
       <button onclick="scrollToSection('eveningBlock')">🌙 Evening Menu</button>
-      <button onclick="scrollToSection('farsanBlock')">🥜 Farsan/Namkeen</button>
+      <button onclick="scrollToSection('farsanBlock')">🥜 Farsan</button>
     </div>
   </div>
 </header>
@@ -374,7 +422,7 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
     <div class="section-header">
       <div class="section-icon">🥜</div>
       <div class="section-meta">
-        <div class="section-title">Farsan/Namkeen</div>
+        <div class="section-title">Farsan</div>
         <div class="section-time">Fresh & Crispy</div>
       </div>
     </div>
@@ -440,8 +488,9 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
   <div class="admin-body">
     <div id="loginSection">
       <div class="login-box">
-        <p style="color: var(--text-light); margin-bottom: 24px; font-size: 0.95rem;">🔒 Admin access is protected</p>
-        <div id="identityLoginBtn">
+        <!-- LOGIN FORM -->
+        <div id="loginFormBox">
+          <p style="color: var(--text-light); margin-bottom: 20px; font-size: 0.95rem;">🔒 Admin access is protected</p>
           <div class="admin-form-group" style="margin-bottom: 12px;">
             <label>Username</label>
             <input type="text" id="adminUsername" placeholder="Enter username" autocomplete="username" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
@@ -450,8 +499,33 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
             <label>Password</label>
             <input type="password" id="adminPassword" placeholder="••••••••" autocomplete="current-password" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
           </div>
-          <button onclick="doLogin()" class="btn btn-primary" style="width: 100%; padding: 16px;">🔐 Log In</button>
+          <button onclick="doLogin()" class="btn btn-primary" style="width: 100%; padding: 16px; margin-bottom: 12px;">🔐 Log In</button>
+          <p style="text-align: center; font-size: 0.85rem; color: var(--text-light);">
+            Need an account? <a href="#" onclick="showRegisterForm()" style="color: var(--text); font-weight: 600;">Register</a>
+          </p>
         </div>
+
+        <!-- REGISTER FORM -->
+        <div id="registerFormBox" style="display: none;">
+          <p style="color: var(--text-light); margin-bottom: 20px; font-size: 0.95rem;">➕ Create new admin account</p>
+          <div class="admin-form-group" style="margin-bottom: 12px;">
+            <label>Username</label>
+            <input type="text" id="regUsername" placeholder="Choose a username" autocomplete="off" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
+          </div>
+          <div class="admin-form-group" style="margin-bottom: 12px;">
+            <label>Email</label>
+            <input type="email" id="regEmail" placeholder="your@email.com" autocomplete="off" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
+          </div>
+          <div class="admin-form-group" style="margin-bottom: 16px;">
+            <label>Password</label>
+            <input type="password" id="regPassword" placeholder="Min 6 characters" autocomplete="off" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
+          </div>
+          <button onclick="doRegister()" class="btn btn-primary" style="width: 100%; padding: 16px; margin-bottom: 12px;">➕ Create Account</button>
+          <p style="text-align: center; font-size: 0.85rem; color: var(--text-light);">
+            Already have an account? <a href="#" onclick="showLoginForm()" style="color: var(--text); font-weight: 600;">Log In</a>
+          </p>
+        </div>
+
         <div id="identityLoggedIn" style="display: none; margin-top: 16px;">
           <p style="font-size: 0.95rem; color: var(--text-light); margin-bottom: 16px;">Logged in as <strong id="identityEmail" style="color: var(--text);"></strong></p>
           <button onclick="doLogin()" class="btn btn-primary" style="width: 100%; padding: 16px;">⚙️ Open Menu Manager</button>
@@ -509,7 +583,7 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
 
       <div class="admin-section-tabs">
         <button class="admin-section-tab active" onclick="switchAdminSection('daily')">📋 Daily Menu</button>
-        <button class="admin-section-tab" onclick="switchAdminSection('farsan')">🥜 Farsan/Namkeen</button>
+        <button class="admin-section-tab" onclick="switchAdminSection('farsan')">🥜 Farsan</button>
       </div>
 
       <div id="adminDailySection">
@@ -540,7 +614,7 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
             </div>
             <div class="form-row">
               <div class="admin-form-group"><label>Item Name *</label><input type="text" id="editName"></div>
-              <div class="admin-form-group"><label>Price $ (Optional)</label><input type="number" id="editPrice" step="0.01"></div>
+              <div class="admin-form-group"><label>Price $ (Optional)</label><input type="text" id="editPrice" placeholder="e.g., 5.00"></div>
             </div>
             <div class="admin-form-group"><label>Description</label><input type="text" id="editDesc"></div>
             <input type="hidden" id="editId"><input type="hidden" id="editImage">
@@ -569,7 +643,7 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
             </div>
             <div class="form-row">
               <div class="admin-form-group"><label>Item Name *</label><input type="text" id="newName"></div>
-              <div class="admin-form-group"><label>Price $ (Optional)</label><input type="number" id="newPrice" step="0.01"></div>
+              <div class="admin-form-group"><label>Price $ (Optional)</label><input type="text" id="newPrice" placeholder="e.g., 5.00"></div>
             </div>
             <div class="admin-form-group"><label>Description</label><input type="text" id="newDesc"></div>
             <input type="hidden" id="newImage">
@@ -1244,6 +1318,10 @@ function renderList(type, items, elementId) {
     const imageUrl = fixImageUrl(item.image);
     const hasImage = !!imageUrl;
     const safeUrl = imageUrl ? imageUrl.replace(/"/g, '&quot;') : '';
+    const isFarsan = type === 'farsan';
+    const priceHtml = isFarsan 
+      ? (item.price ? renderPriceTiers(item.price) : '')
+      : (item.price ? `<div class="item-price">$${item.price}</div>` : '');
     return `
     <div class="menu-item">
       <div class="item-image-wrap" style="width:72px;height:72px;flex-shrink:0;position:relative;">
@@ -1253,8 +1331,9 @@ function renderList(type, items, elementId) {
       <div class="item-main">
         <div class="item-name">${escapeHtml(item.name)}</div>
         ${item.desc ? `<div class="item-desc">${escapeHtml(item.desc)}</div>` : ''}
+        ${isFarsan && item.price ? priceHtml : ''}
       </div>
-      ${item.price ? `<div class="item-price">$${item.price}</div>` : ''}
+      ${!isFarsan && item.price ? priceHtml : ''}
     </div>`;
   }).join('');
 }
@@ -1264,6 +1343,27 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function renderPriceTiers(priceStr) {
+  if (!priceStr) return '';
+  // Split by ~ or | to get individual tiers
+  const tiers = priceStr.split(/[~|]/).map(t => t.trim()).filter(t => t);
+  if (tiers.length <= 1) {
+    // Single price - render as before
+    return `<div class="item-price">$${escapeHtml(priceStr)}</div>`;
+  }
+  // Multiple tiers - render as styled badges
+  const tierHtml = tiers.map(tier => {
+    // Try to split amount and size (e.g., "$5/500g" → "$5" + "/500g")
+    const match = tier.match(/^([$\d\.]+)(\/.*)$/);
+    if (match) {
+      return `<span class="price-tier"><span class="tier-amount">${escapeHtml(match[1])}</span><span class="tier-size">${escapeHtml(match[2])}</span></span>`;
+    }
+    return `<span class="price-tier">${escapeHtml(tier)}</span>`;
+  }).join('<span class="price-tier-divider">•</span>');
+
+  return `<div class="price-tier-container">${tierHtml}</div>`;
 }
 
 function scrollToSection(id) {
@@ -1404,6 +1504,76 @@ async function doLogin() {
   renderAdminLists();
   updateAdminStatusUI();
   loadTimeSettings();
+}
+
+function showRegisterForm() {
+  document.getElementById('loginFormBox').style.display = 'none';
+  document.getElementById('registerFormBox').style.display = 'block';
+}
+
+function showLoginForm() {
+  document.getElementById('registerFormBox').style.display = 'none';
+  document.getElementById('loginFormBox').style.display = 'block';
+}
+
+async function doRegister() {
+  const username = document.getElementById('regUsername').value.trim().toLowerCase();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPassword').value.trim();
+
+  if (!username || !email || !password) {
+    alert('Please fill in all fields.');
+    return;
+  }
+  if (password.length < 6) {
+    alert('Password must be at least 6 characters.');
+    return;
+  }
+  if (!supabaseClient) {
+    alert('Supabase not connected. Cannot register.');
+    return;
+  }
+
+  // Check if username already exists
+  const { data: existingUser } = await supabaseClient
+    .from('admin_users')
+    .select('username')
+    .eq('username', username)
+    .single();
+
+  if (existingUser) {
+    alert('Username already taken. Please choose another.');
+    return;
+  }
+
+  // Create auth user in Supabase
+  const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+    email: email,
+    password: password,
+    options: {
+      data: { username: username }
+    }
+  });
+
+  if (authError) {
+    alert('Registration failed: ' + authError.message);
+    return;
+  }
+
+  // Add to admin_users table
+  const { error: insertError } = await supabaseClient
+    .from('admin_users')
+    .insert([{ username: username, email: email }]);
+
+  if (insertError) {
+    alert('User created but failed to save username mapping. Contact support.');
+    console.error(insertError);
+    return;
+  }
+
+  alert('✅ Account created successfully! You can now log in.');
+  showLoginForm();
+  document.getElementById('adminUsername').value = username;
 }
 
 function switchAdminSection(section) {
