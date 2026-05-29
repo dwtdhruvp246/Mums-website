@@ -1468,7 +1468,7 @@ function closeAdmin() {
 }
 
 async function doLogin() {
-  const username = document.getElementById('adminUsername').value.trim();
+  const username = document.getElementById('adminUsername').value.trim().toLowerCase();
   const password = document.getElementById('adminPassword').value.trim();
   if (!username || !password) {
     alert('Please enter username and password.');
@@ -1479,6 +1479,8 @@ async function doLogin() {
     return;
   }
 
+  console.log('Attempting login for username:', username);
+
   // Look up email from username
   const { data: userRow, error: lookupError } = await supabaseClient
     .from('admin_users')
@@ -1486,15 +1488,29 @@ async function doLogin() {
     .eq('username', username)
     .single();
 
-  if (lookupError || !userRow) {
-    alert('Username not found.');
+  if (lookupError) {
+    console.error('Username lookup error:', lookupError);
+    alert('Username not found. Make sure you registered first.');
     return;
   }
+  if (!userRow) {
+    alert('Username not found. Make sure you registered first.');
+    return;
+  }
+
+  console.log('Found email for username:', userRow.email);
 
   const email = userRow.email;
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) {
-    alert('Login failed: ' + error.message);
+    console.error('Auth error:', error);
+    if (error.message.includes('Email not confirmed')) {
+      alert('Login failed: Email not confirmed.\n\nGo to Supabase Dashboard → Authentication → Users, find your user, and toggle "Email confirmed" to ON.');
+    } else if (error.message.includes('Invalid login')) {
+      alert('Login failed: Wrong password.');
+    } else {
+      alert('Login failed: ' + error.message);
+    }
     return;
   }
   isLoggedIn = true;
@@ -1534,13 +1550,18 @@ async function doRegister() {
     return;
   }
 
+  console.log('Registering username:', username, 'email:', email);
+
   // Check if username already exists
-  const { data: existingUser } = await supabaseClient
+  const { data: existingUser, error: checkError } = await supabaseClient
     .from('admin_users')
     .select('username')
     .eq('username', username)
     .single();
 
+  if (checkError && checkError.code !== 'PGRST116') {
+    console.error('Error checking username:', checkError);
+  }
   if (existingUser) {
     alert('Username already taken. Please choose another.');
     return;
@@ -1556,9 +1577,12 @@ async function doRegister() {
   });
 
   if (authError) {
+    console.error('Auth signup error:', authError);
     alert('Registration failed: ' + authError.message);
     return;
   }
+
+  console.log('Auth user created:', authData);
 
   // Add to admin_users table
   const { error: insertError } = await supabaseClient
@@ -1566,12 +1590,12 @@ async function doRegister() {
     .insert([{ username: username, email: email }]);
 
   if (insertError) {
-    alert('User created but failed to save username mapping. Contact support.');
-    console.error(insertError);
+    console.error('admin_users insert error:', insertError);
+    alert('User created but failed to save username mapping.\n\nError: ' + insertError.message + '\n\nMake sure RLS policies allow INSERT on admin_users.');
     return;
   }
 
-  alert('✅ Account created successfully! You can now log in.');
+  alert('✅ Account created successfully!\n\nIMPORTANT: Go to Supabase Dashboard → Authentication → Users, find your new user, and toggle "Email confirmed" to ON. Then you can log in.');
   showLoginForm();
   document.getElementById('adminUsername').value = username;
 }
