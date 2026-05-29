@@ -295,8 +295,8 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
   .admin-panel { border-radius: 24px 24px 0 0; }
 }
 </style>
-<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<base target="_blank">
 </head>
 <body>
 
@@ -440,11 +440,19 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
   <div class="admin-body">
     <div id="loginSection">
       <div class="login-box">
-        <p style="color: var(--text-light); margin-bottom: 24px; font-size: 0.95rem;">🔒 Admin access is protected by Netlify Identity</p>
-        <div id="identityLoginBtn" style="margin-bottom: 16px;">
-          <button onclick="netlifyIdentity.open('login')" class="btn btn-primary" style="width: 100%; padding: 16px;">🔐 Log in with Netlify</button>
+        <p style="color: var(--text-light); margin-bottom: 24px; font-size: 0.95rem;">🔒 Admin access is protected</p>
+        <div id="identityLoginBtn">
+          <div class="admin-form-group" style="margin-bottom: 12px;">
+            <label>Email</label>
+            <input type="email" id="adminEmail" placeholder="admin@example.com" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
+          </div>
+          <div class="admin-form-group" style="margin-bottom: 16px;">
+            <label>Password</label>
+            <input type="password" id="adminPassword" placeholder="••••••••" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
+          </div>
+          <button onclick="doLogin()" class="btn btn-primary" style="width: 100%; padding: 16px;">🔐 Log In</button>
         </div>
-        <div id="identityLoggedIn" style="display: none; margin-bottom: 16px;">
+        <div id="identityLoggedIn" style="display: none; margin-top: 16px;">
           <p style="font-size: 0.95rem; color: var(--text-light); margin-bottom: 16px;">Logged in as <strong id="identityEmail" style="color: var(--text);"></strong></p>
           <button onclick="doLogin()" class="btn btn-primary" style="width: 100%; padding: 16px;">⚙️ Open Menu Manager</button>
         </div>
@@ -654,7 +662,7 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
 </div>
 
 <script>
-const IDENTITY_API_URL = 'https://grand-axolotl-c1c527.netlify.app/.netlify/identity';
+// Auth now handled by Supabase (see below)
 const SUPABASE_URL = 'https://yuyfjmtfrhbanjgstxfu.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_uqnvMaXtkY2Nh-FCwGo4sw_NTvrP75v';
 
@@ -728,42 +736,50 @@ function updateHeroColor() {
   document.getElementById('recommendHero').style.background = gradient;
 }
 
-if (typeof netlifyIdentity !== 'undefined') {
-  netlifyIdentity.init({ APIUrl: IDENTITY_API_URL });
-  netlifyIdentity.on('login', (user) => {
-    console.log('Logged in as', user.email);
-    updateIdentityUI();
-    if (document.getElementById('adminOverlay').classList.contains('active')) {
-      isLoggedIn = true;
-      showIdentityUI(user);
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('dashboardSection').style.display = 'block';
-      document.getElementById('logoutBtn').style.display = 'inline-block';
-      renderAdminLists();
-      updateAdminStatusUI();
-      loadTimeSettings();
-    }
-  });
-  netlifyIdentity.on('logout', () => {
-    console.log('Logged out');
-    isLoggedIn = false;
-    updateIdentityUI();
-    if (document.getElementById('adminOverlay').classList.contains('active')) {
-      document.getElementById('loginSection').style.display = 'block';
-      document.getElementById('dashboardSection').style.display = 'none';
-      document.getElementById('logoutBtn').style.display = 'none';
-    }
-  });
-  netlifyIdentity.on('init', (user) => { updateIdentityUI(); });
+// Check existing session on load
+async function checkSupabaseSession() {
+  if (!supabaseClient) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    isLoggedIn = true;
+    console.log('Session found for', session.user.email);
+  }
 }
 
-function doLogout() {
-  if (typeof netlifyIdentity !== 'undefined') netlifyIdentity.logout();
+// Listen for auth state changes
+if (supabaseClient) {
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      isLoggedIn = true;
+      console.log('Signed in as', session.user.email);
+      if (document.getElementById('adminOverlay').classList.contains('active')) {
+        showSupabaseAuthUI(session.user);
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('dashboardSection').style.display = 'block';
+        document.getElementById('logoutBtn').style.display = 'inline-block';
+        renderAdminLists();
+        updateAdminStatusUI();
+        loadTimeSettings();
+      }
+    } else if (event === 'SIGNED_OUT') {
+      isLoggedIn = false;
+      if (document.getElementById('adminOverlay').classList.contains('active')) {
+        document.getElementById('loginSection').style.display = 'block';
+        document.getElementById('dashboardSection').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'none';
+      }
+    }
+  });
+}
+
+async function doLogout() {
+  if (supabaseClient) await supabaseClient.auth.signOut();
   isLoggedIn = false;
   closeAdmin();
 }
 
 async function init() {
+  await checkSupabaseSession();
   await loadState();
   updateDate();
   updateHeroColor();
@@ -943,9 +959,10 @@ async function saveState() {
   }
 }
 
-function isSessionValid() {
-  const user = netlifyIdentity.currentUser();
-  return !!user;
+async function isSessionValid() {
+  if (!supabaseClient) return false;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  return !!session;
 }
 
 function updateDate() {
@@ -1290,13 +1307,20 @@ async function submitRecommendation() {
   document.getElementById('successMessage').style.display = 'block';
 }
 
-function openAdmin() {
+async function openAdmin() {
   document.getElementById('adminOverlay').classList.add('active');
   document.body.style.overflow = 'hidden';
-  const user = netlifyIdentity.currentUser();
+
+  // Check Supabase session
+  let user = null;
+  if (supabaseClient) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    user = session?.user || null;
+  }
+
   if (user) {
     isLoggedIn = true;
-    showIdentityUI(user);
+    showSupabaseAuthUI(user);
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('dashboardSection').style.display = 'block';
     document.getElementById('logoutBtn').style.display = 'inline-block';
@@ -1321,23 +1345,19 @@ function openAdmin() {
     document.getElementById('loginSection').style.display = 'block';
     document.getElementById('dashboardSection').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'none';
-    updateIdentityUI();
+    updateSupabaseAuthUI();
   }
 }
 
-function showIdentityUI(user) {
+function showSupabaseAuthUI(user) {
   document.getElementById('identityLoginBtn').style.display = 'none';
   document.getElementById('identityLoggedIn').style.display = 'block';
   document.getElementById('identityEmail').textContent = user.email || 'Admin';
 }
 
-function updateIdentityUI() {
-  const user = netlifyIdentity.currentUser();
-  if (user) showIdentityUI(user);
-  else {
-    document.getElementById('identityLoginBtn').style.display = 'block';
-    document.getElementById('identityLoggedIn').style.display = 'none';
-  }
+function updateSupabaseAuthUI() {
+  document.getElementById('identityLoginBtn').style.display = 'block';
+  document.getElementById('identityLoggedIn').style.display = 'none';
 }
 
 function closeAdmin() {
@@ -1345,18 +1365,29 @@ function closeAdmin() {
   document.body.style.overflow = '';
 }
 
-function doLogin() {
-  const user = netlifyIdentity.currentUser();
-  if (user) {
-    isLoggedIn = true;
-    document.getElementById('loginSection').style.display = 'none';
-    document.getElementById('dashboardSection').style.display = 'block';
-    renderAdminLists();
-    updateAdminStatusUI();
-    loadTimeSettings();
-  } else {
-    netlifyIdentity.open('login');
+async function doLogin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const password = document.getElementById('adminPassword').value.trim();
+  if (!email || !password) {
+    alert('Please enter email and password.');
+    return;
   }
+  if (!supabaseClient) {
+    alert('Supabase not connected. Cannot log in.');
+    return;
+  }
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    alert('Login failed: ' + error.message);
+    return;
+  }
+  isLoggedIn = true;
+  document.getElementById('loginSection').style.display = 'none';
+  document.getElementById('dashboardSection').style.display = 'block';
+  document.getElementById('logoutBtn').style.display = 'inline-block';
+  renderAdminLists();
+  updateAdminStatusUI();
+  loadTimeSettings();
 }
 
 function switchAdminSection(section) {
