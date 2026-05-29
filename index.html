@@ -856,10 +856,16 @@ function updateHeroColor() {
 // Check existing session on load
 async function checkSupabaseSession() {
   if (!supabaseClient) return;
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if (session) {
-    isLoggedIn = true;
-    console.log('Session found for', session.user.email);
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      isLoggedIn = true;
+      console.log('✅ Existing session found for', session.user.email);
+    } else {
+      console.log('ℹ️ No existing session');
+    }
+  } catch (e) {
+    console.error('❌ Error checking session:', e);
   }
 }
 
@@ -868,22 +874,30 @@ if (supabaseClient) {
   supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN' && session) {
       isLoggedIn = true;
-      console.log('Signed in as', session.user.email);
-      if (document.getElementById('adminOverlay').classList.contains('active')) {
+      console.log('✅ Signed in as', session.user.email);
+      const overlay = document.getElementById('adminOverlay');
+      if (overlay && overlay.classList.contains('active')) {
         showSupabaseAuthUI(session.user);
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('dashboardSection').style.display = 'block';
-        document.getElementById('logoutBtn').style.display = 'inline-block';
+        const loginSection = document.getElementById('loginSection');
+        const dashboard = document.getElementById('dashboardSection');
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (loginSection) loginSection.style.display = 'none';
+        if (dashboard) dashboard.style.display = 'block';
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
         renderAdminLists();
         updateAdminStatusUI();
         loadTimeSettings();
       }
     } else if (event === 'SIGNED_OUT') {
       isLoggedIn = false;
-      if (document.getElementById('adminOverlay').classList.contains('active')) {
-        document.getElementById('loginSection').style.display = 'block';
-        document.getElementById('dashboardSection').style.display = 'none';
-        document.getElementById('logoutBtn').style.display = 'none';
+      const overlay = document.getElementById('adminOverlay');
+      if (overlay && overlay.classList.contains('active')) {
+        const loginSection = document.getElementById('loginSection');
+        const dashboard = document.getElementById('dashboardSection');
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (loginSection) loginSection.style.display = 'block';
+        if (dashboard) dashboard.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
       }
     }
   });
@@ -1483,8 +1497,13 @@ async function openAdmin() {
   // Check Supabase session
   let user = null;
   if (supabaseClient) {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    user = session?.user || null;
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      user = session?.user || null;
+      if (user) console.log('✅ Admin panel opened with session:', user.email);
+    } catch (e) {
+      console.error('❌ Error getting session:', e);
+    }
   }
 
   if (user) {
@@ -1519,16 +1538,25 @@ async function openAdmin() {
 }
 
 function showSupabaseAuthUI(user) {
-  document.getElementById('identityLoginBtn').style.display = 'none';
-  document.getElementById('identityLoggedIn').style.display = 'block';
-  // Show username if in metadata, otherwise email
-  const displayName = user.user_metadata?.username || user.email || 'Admin';
-  document.getElementById('identityEmail').textContent = displayName;
+  const loginForm = document.getElementById('loginFormBox');
+  const loggedInSection = document.getElementById('identityLoggedIn');
+  const emailDisplay = document.getElementById('identityEmail');
+
+  if (loginForm) loginForm.style.display = 'none';
+  if (loggedInSection) loggedInSection.style.display = 'block';
+  if (emailDisplay) {
+    // Handle both session.user and direct user objects
+    const meta = user.user_metadata || user.raw_user_meta_data || {};
+    const displayName = meta.username || user.email || 'Admin';
+    emailDisplay.textContent = displayName;
+  }
 }
 
 function updateSupabaseAuthUI() {
-  document.getElementById('identityLoginBtn').style.display = 'block';
-  document.getElementById('identityLoggedIn').style.display = 'none';
+  const loginForm = document.getElementById('loginFormBox');
+  const loggedInSection = document.getElementById('identityLoggedIn');
+  if (loginForm) loginForm.style.display = 'block';
+  if (loggedInSection) loggedInSection.style.display = 'none';
 }
 
 function closeAdmin() {
