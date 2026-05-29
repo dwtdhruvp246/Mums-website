@@ -443,12 +443,12 @@ body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--t
         <p style="color: var(--text-light); margin-bottom: 24px; font-size: 0.95rem;">🔒 Admin access is protected</p>
         <div id="identityLoginBtn">
           <div class="admin-form-group" style="margin-bottom: 12px;">
-            <label>Email</label>
-            <input type="email" id="adminEmail" placeholder="admin@example.com" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
+            <label>Username</label>
+            <input type="text" id="adminUsername" placeholder="Enter username" autocomplete="username" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
           </div>
           <div class="admin-form-group" style="margin-bottom: 16px;">
             <label>Password</label>
-            <input type="password" id="adminPassword" placeholder="••••••••" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
+            <input type="password" id="adminPassword" placeholder="••••••••" autocomplete="current-password" style="width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-family: inherit;">
           </div>
           <button onclick="doLogin()" class="btn btn-primary" style="width: 100%; padding: 16px;">🔐 Log In</button>
         </div>
@@ -1352,7 +1352,9 @@ async function openAdmin() {
 function showSupabaseAuthUI(user) {
   document.getElementById('identityLoginBtn').style.display = 'none';
   document.getElementById('identityLoggedIn').style.display = 'block';
-  document.getElementById('identityEmail').textContent = user.email || 'Admin';
+  // Show username if in metadata, otherwise email
+  const displayName = user.user_metadata?.username || user.email || 'Admin';
+  document.getElementById('identityEmail').textContent = displayName;
 }
 
 function updateSupabaseAuthUI() {
@@ -1366,16 +1368,30 @@ function closeAdmin() {
 }
 
 async function doLogin() {
-  const email = document.getElementById('adminEmail').value.trim();
+  const username = document.getElementById('adminUsername').value.trim();
   const password = document.getElementById('adminPassword').value.trim();
-  if (!email || !password) {
-    alert('Please enter email and password.');
+  if (!username || !password) {
+    alert('Please enter username and password.');
     return;
   }
   if (!supabaseClient) {
     alert('Supabase not connected. Cannot log in.');
     return;
   }
+
+  // Look up email from username
+  const { data: userRow, error: lookupError } = await supabaseClient
+    .from('admin_users')
+    .select('email')
+    .eq('username', username)
+    .single();
+
+  if (lookupError || !userRow) {
+    alert('Username not found.');
+    return;
+  }
+
+  const email = userRow.email;
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) {
     alert('Login failed: ' + error.message);
