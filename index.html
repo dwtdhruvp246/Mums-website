@@ -1123,7 +1123,13 @@
                     <div id="loginSpinner" class="spinner hidden"></div>
                 </button>
             </form>
-            <p style="text-align: center; margin-top: 20px; font-size: 0.75rem; color: var(--text-muted);">
+            <div style="margin-top: 12px;">
+                <button type="button" id="testConnectionBtn" class="btn btn-secondary btn-sm" style="width: 100%;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    Test Database Connection
+                </button>
+            </div>
+            <p style="text-align: center; margin-top: 16px; font-size: 0.75rem; color: var(--text-muted);">
                 Default: admin / admin123
             </p>
         </div>
@@ -1674,16 +1680,37 @@
         // INITIALIZATION
         // ============================================
         document.addEventListener('DOMContentLoaded', async () => {
-            // Initialize Supabase with session token in headers
+            console.log('[CMMS] DOM loaded, initializing...');
+
+            // Check if Supabase library loaded
+            if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+                console.error('[CMMS] Supabase library not loaded! Check CDN connection.');
+                document.getElementById('loginBtnText').textContent = 'Supabase library failed to load';
+                document.getElementById('loginBtnText').style.color = '#ef4444';
+                return;
+            }
+            console.log('[CMMS] Supabase library found');
+
+            // Initialize Supabase
             const savedToken = localStorage.getItem('cmms_session_token');
             if (savedToken) {
                 currentSessionToken = savedToken;
             }
 
             initSupabase();
+            console.log('[CMMS] Supabase client initialized');
+
+            // Test connection immediately
+            try {
+                const { data: testData, error: testError } = await supabase.from('users').select('count', { count: 'exact', head: true });
+                console.log('[CMMS] Connection test:', testError ? 'FAILED: ' + testError.message : 'OK');
+            } catch (e) {
+                console.error('[CMMS] Connection test exception:', e);
+            }
 
             // Check if already logged in
             if (savedToken) {
+                console.log('[CMMS] Found saved token, validating...');
                 const valid = await auth.validateSession(savedToken);
                 if (valid) {
                     await auth.loadUserData();
@@ -1706,8 +1733,17 @@
             // Setup login form
             document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                console.log('[CMMS] Login form submitted');
                 await auth.login();
             });
+
+            // Setup test connection button
+            const testBtn = document.getElementById('testConnectionBtn');
+            if (testBtn) {
+                testBtn.addEventListener('click', async () => {
+                    await auth.testConnection();
+                });
+            }
         });
 
         function initSupabase() {
@@ -1778,28 +1814,61 @@
                 }
 
                 ui.showLoginLoading(true);
+                console.log('[CMMS] Attempting login for:', username);
 
                 try {
-                    // Simple password comparison (in production, use proper hashing)
-                    const { data: user, error } = await supabase
+                    // Step 1: Simple query first - just check if users table exists and user exists
+                    console.log('[CMMS] Querying users table...');
+                    const { data: users, error: userError } = await supabase
                         .from('users')
-                        .select('*, roles(name), departments(name), positions(name)')
+                        .select('id, username, password_hash, full_name, role_id, is_active')
                         .eq('username', username)
-                        .eq('password_hash', password)
                         .eq('is_active', true)
-                        .single();
+                        .limit(1);
 
-                    if (error || !user) {
+                    console.log('[CMMS] User query result:', { users, error: userError });
+
+                    if (userError) {
+                        console.error('[CMMS] User query error:', userError);
+                        ui.toast('Database error: ' + userError.message, 'error');
+                        ui.showLoginLoading(false);
+                        return;
+                    }
+
+                    if (!users || users.length === 0) {
+                        console.log('[CMMS] No user found with username:', username);
                         ui.toast('Invalid username or password', 'error');
                         ui.showLoginLoading(false);
                         return;
                     }
 
-                    // Create session
+                    const user = users[0];
+
+                    // Step 2: Check password
+                    if (user.password_hash !== password) {
+                        console.log('[CMMS] Password mismatch for user:', username);
+                        ui.toast('Invalid username or password', 'error');
+                        ui.showLoginLoading(false);
+                        return;
+                    }
+
+                    console.log('[CMMS] Password correct, user ID:', user.id);
+
+                    // Step 3: Fetch related data separately
+                    const { data: roleData } = await supabase.from('roles').select('name').eq('id', user.role_id).single();
+                    const { data: deptData } = await supabase.from('departments').select('name').eq('id', user.department_id).single();
+                    const { data: posData } = await supabase.from('positions').select('name').eq('id', user.position_id).single();
+
+                    user.roles = roleData || {};
+                    user.departments = deptData || {};
+                    user.positions = posData || {};
+
+                    // Step 4: Create session
                     const token = generateToken();
                     const expiresAt = new Date();
                     expiresAt.setDate(expiresAt.getDate() + 7);
 
+                    console.log('[CMMS] Creating session...');
                     const { error: sessionError } = await supabase
                         .from('user_sessions')
                         .insert([{
@@ -1809,11 +1878,13 @@
                         }]);
 
                     if (sessionError) {
-                        console.error('Session error:', sessionError);
+                        console.error('[CMMS] Session error:', sessionError);
                         ui.toast('Login failed. Please try again.', 'error');
                         ui.showLoginLoading(false);
                         return;
                     }
+
+                    console.log('[CMMS] Session created, token:', token.substring(0, 8) + '...');
 
                     currentSessionToken = token;
                     localStorage.setItem('cmms_session_token', token);
@@ -1833,27 +1904,98 @@
                     }
 
                 } catch (err) {
-                    console.error('Login error:', err);
-                    ui.toast('Login failed. Please check your connection.', 'error');
+                    console.error('[CMMS] Login exception:', err);
+                    ui.toast('Login failed: ' + (err.message || 'Unknown error'), 'error');
                     ui.showLoginLoading(false);
+                }
+            },
+
+            async testConnection() {
+                const btn = document.getElementById('testConnectionBtn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Testing...';
+                btn.disabled = true;
+
+                try {
+                    console.log('[CMMS] Testing Supabase connection...');
+
+                    // Test 1: Check if supabase object exists
+                    if (!supabase) {
+                        ui.toast('Supabase client not initialized', 'error');
+                        btn.textContent = 'Failed: Not initialized';
+                        return;
+                    }
+
+                    // Test 2: Try to query users table
+                    const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
+
+                    if (error) {
+                        console.error('[CMMS] Connection test failed:', error);
+                        ui.toast('Connection failed: ' + error.message, 'error');
+                        btn.textContent = 'Failed: ' + error.message;
+                        return;
+                    }
+
+                    console.log('[CMMS] Connection test passed. Users count:', data);
+                    ui.toast('Connection OK! Users table accessible.', 'success');
+                    btn.textContent = 'Connection OK!';
+                    btn.classList.remove('btn-secondary');
+                    btn.classList.add('btn-success');
+
+                } catch (err) {
+                    console.error('[CMMS] Connection test exception:', err);
+                    ui.toast('Connection test error: ' + (err.message || 'Unknown'), 'error');
+                    btn.textContent = 'Failed: ' + (err.message || 'Error');
+                } finally {
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-secondary');
+                    }, 3000);
                 }
             },
 
             async validateSession(token) {
                 try {
-                    const { data, error } = await supabase
+                    console.log('[CMMS] Validating session token...');
+                    const { data: sessions, error } = await supabase
                         .from('user_sessions')
-                        .select('*, users(*, roles(name), departments(name), positions(name))')
+                        .select('id, user_id, expires_at')
                         .eq('token', token)
                         .gt('expires_at', new Date().toISOString())
+                        .limit(1);
+
+                    if (error) {
+                        console.error('[CMMS] Session validation error:', error);
+                        return false;
+                    }
+
+                    if (!sessions || sessions.length === 0) {
+                        console.log('[CMMS] No valid session found');
+                        return false;
+                    }
+
+                    const session = sessions[0];
+
+                    // Fetch user data separately
+                    const { data: userData } = await supabase
+                        .from('users')
+                        .select('*, roles(name), departments(name), positions(name)')
+                        .eq('id', session.user_id)
                         .single();
 
-                    if (error || !data) return false;
+                    if (!userData) {
+                        console.log('[CMMS] User not found for session');
+                        return false;
+                    }
 
-                    currentUser = data.users;
+                    currentUser = userData;
                     await auth.loadPermissions();
+                    console.log('[CMMS] Session valid for user:', currentUser.username);
                     return true;
                 } catch (err) {
+                    console.error('[CMMS] Session validation exception:', err);
                     return false;
                 }
             },
