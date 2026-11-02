@@ -15,6 +15,8 @@ For an older project, `SUPABASE_ANON_KEY` can be used instead of the publishable
 
 Configure these values through the Site's runtime environment settings and deploy the prepared version again. Do not put runtime credentials into the hosting manifest or committed source. For local development, use untracked `.dev.vars` with the same variable names.
 
+The GitHub Pages version uses `pnpm build:pages` and receives the same public project configuration at build time. Its generated JavaScript includes the browser-safe public key; it has no server on which to run `/api/auth/config`. The build rejects secret/service-role keys. Both versions use the same Supabase account ownership and RLS rules.
+
 ## 2. Create the private workspace table
 
 For a fresh project, run `supabase/migrations/20261102150707_private_workspaces.sql` once in its SQL editor. Keep its transaction intact. This migration is already applied to CateringDesk; do not run it again there. An existing-table error means it has already been applied or there is a naming conflict; preserve existing data and inspect the error instead of dropping the table.
@@ -71,5 +73,7 @@ Keep the production origin stable so browser session storage remains associated 
 The temporary `/demo` route opens sample data only while Supabase is unconfigured; it redirects to the login flow once valid project configuration is supplied. It never imports a browser's sample records into an authenticated workspace.
 
 The current Sites preview also retains its existing ChatGPT owner-only access gate. Supabase user creation alone does not grant another person access through that outer gate. Choose the final hosting/access arrangement when connecting the production project; this implementation does not make the Site public.
+
+The separate GitHub Pages deployment opens directly at `https://dwtdhruvp246.github.io/Mums-website/` and uses Supabase sign-in. Use that URL as the production Auth Site URL when GitHub Pages is the chosen host. Password sign-in itself does not require an OAuth callback route.
 
 Official references: [sessions](https://supabase.com/docs/guides/auth/sessions), [client initialisation](https://supabase.com/docs/reference/javascript/initializing), [general Auth configuration](https://supabase.com/docs/guides/auth/general-configuration), [row-level security](https://supabase.com/docs/guides/database/postgres/row-level-security).

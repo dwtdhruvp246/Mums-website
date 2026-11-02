@@ -9,7 +9,7 @@ export default function SignIn({ready,busy,message,onSignIn}:{ready:boolean;busy
   async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!ready||busy)return;await onSignIn(email.trim(),password);}
   return <main className="login-shell">
     <section className="login-story" aria-label="Catering Desk">
-      <a href="/" className="login-brand"><span className="brand-mark"><CookingPot size={25}/></span><strong>Catering<span>Desk</span></strong></a>
+      <a href="./" className="login-brand"><span className="brand-mark"><CookingPot size={25}/></span><strong>Catering<span>Desk</span></strong></a>
       <div className="login-story-content"><span className="login-eyebrow">A LITTLE ORDER FOR YOUR KITCHEN</span><h1>Good food.<br/> Smooth days.</h1><p>Your orders, customers and kitchen preparation, together in one place.</p><div className="login-illustration" aria-hidden="true"><div className="login-illustration-orbit"/><div className="login-pot"><CookingPot size={88} strokeWidth={1.15}/><Leaf size={25} strokeWidth={1.6}/></div><div className="login-order-note"><span><ClipboardList size={19}/></span><div><strong>Every order, accounted for.</strong><small>From the first enquiry to collection.</small></div></div></div></div>
       <p className="login-story-footer">Made for the way your kitchen works.</p>
     </section>

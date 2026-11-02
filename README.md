@@ -28,7 +28,7 @@ Run [the workspace migration](supabase/migrations/20261102150707_private_workspa
 
 Project configuration alone does not install the schema or change Auth settings. Verify both, then test sign-in and account isolation using two administrator-created test accounts before using real business records. Temporary network failures show a retry state; they never replace records with sample data.
 
-Local environment files are ignored by Git. Credentials are supplied through hosting runtime settings and are not committed to this repository.
+Local environment files are ignored by Git. The Worker version reads configuration from hosting runtime settings. The GitHub Pages bundle contains only the public Supabase URL and browser-safe key, as required by a browser client. Administrator, service-role and secret keys must never be included.
 
 ## Run locally
 
@@ -53,7 +53,22 @@ pnpm build
 
 The catering checks cover the real order/menu logic. Auth checks use the actual SDK and PostgreSQL migration with synthetic users to verify persistence, token refresh, RLS, workspace isolation and stale-save conflicts. They do not contact a live Supabase project.
 
-This is a Worker application, not a static GitHub Pages site. `pnpm build` emits client assets and server code under `dist/`. The tracked Sites tooling and `.openai/hosting.json` preserve the existing private hosted preview. That preview has a separate ChatGPT access gate; Supabase users also need access to the chosen production host. The historical D1 binding remains unused, and the retired `/api/workspace` endpoint is closed.
+`pnpm build` emits the Worker application under `dist/`. The tracked Sites tooling and `.openai/hosting.json` preserve the existing private hosted preview and its separate ChatGPT access gate. The historical D1 binding remains unused, and the retired `/api/workspace` endpoint is closed.
+
+## GitHub Pages
+
+The repository also includes a static browser build for GitHub Pages. It runs the same sign-in, orders and workspace components and connects directly to Supabase under the same user-specific RLS policies.
+
+```sh
+# Supply SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY).
+pnpm build:pages
+```
+
+If those environment values are absent, the script accepts a JSON object on stdin containing `url` and `publishableKey`. It validates the key and rejects privileged credentials. The generated files are placed in `.sites-runtime/github-pages/`.
+
+For the repository's existing **Deploy from a branch → main → / (root)** setup, publish the contents of that output directory at the repository root: `index.html`, `.nojekyll` and `pages-assets/`. Rebuild and publish these generated files whenever the app source changes. Relative asset URLs support the `/Mums-website/` project path. The source entry point is `web/main.tsx`; do not edit the generated bundle directly.
+
+The root `index.html` opens the application instead of GitHub's generated README page. GitHub Pages serves the public sign-in screen; orders and customer records remain protected in Supabase. It does not use the Worker `/api/auth/config` endpoint or the private Sites access gate.
 
 ## PWA
 

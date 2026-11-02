@@ -9,7 +9,7 @@ import { supabaseWorkspaceRepository } from "../lib/workspace-repository";
 import CateringApp from "./catering-app";
 import SignIn from "./sign-in";
 
-export default function AuthWorkspace(){
+export default function AuthWorkspace({publicConfig}:{publicConfig?:PublicSupabaseConfig}={}){
   const [client,setClient]=useState<SupabaseClient|null>(null);
   const [configPhase,setConfigPhase]=useState<"loading"|"ready"|"unconfigured"|"error">("loading");
   const [auth,setAuth]=useState(initialAuthState);
@@ -23,6 +23,12 @@ export default function AuthWorkspace(){
   useEffect(()=>{
     let active=true;const controller=new AbortController();
     setConfigPhase("loading");
+    // Static hosts receive browser-safe build configuration; hosted Sites use the API.
+    if(publicConfig){
+      try{setClient(browserSupabase(publicConfig));setConfigPhase("ready");}
+      catch{setConfigPhase("error");}
+      return()=>{active=false;controller.abort();};
+    }
     void fetch("/api/auth/config",{cache:"no-store",credentials:"same-origin",signal:controller.signal}).then(async response=>{
       if(!response.ok)throw new Error("Configuration unavailable");
       const body=await response.json() as {config:PublicSupabaseConfig|null};
@@ -31,7 +37,7 @@ export default function AuthWorkspace(){
       setClient(browserSupabase(body.config));setConfigPhase("ready");
     }).catch(()=>{if(active)setConfigPhase("error");});
     return()=>{active=false;controller.abort();};
-  },[configAttempt]);
+  },[configAttempt,publicConfig]);
 
   useEffect(()=>{
     if(!client)return;
