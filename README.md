@@ -9,6 +9,7 @@ A home catering workspace for orders, customers, occasions, menus and kitchen pr
 - Menu items with their own sizes, variations, prices, units and pack weights.
 - Excel template download, bulk menu upload and review with row-specific errors and duplicate prevention.
 - Dashboard calendar, clearly bordered orders, status colours, pack counts and preparation totals.
+- Preparation totals on Orders follow the search, category and status filters, with separate sizes, pack counts and combined dish weights. Cancelled orders are excluded.
 - Orders, kitchen preparation, customer records, payments, printing and CSV export.
 - Alphabetical menu items and dropdown lists; black body text and responsive layouts.
 - Email/password sign-in only. Accounts are created by the administrator in Supabase Auth.

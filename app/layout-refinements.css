@@ -211,6 +211,12 @@ input:disabled,textarea:disabled,select:disabled { color:#000;opacity:1;-webkit-
   .schedule-controls .week-controls { grid-column:1/-1;justify-self:end; }
 }
 
+.order-filters { margin-bottom:20px; }
+.order-filters .toolbar { border-bottom:0;flex-wrap:wrap; }
+.orders-operations>.panel { min-width:0; }
+.orders-operations .total-item-list { max-height:55dvh;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable; }
+.prep-summary .panel-heading .prep-scope { margin-top:9px;color:#000;line-height:1.7;overflow-wrap:anywhere; }
+
 /* Order frames use the same status colours as their text badges. */
 [data-order-status="New"] { --order-ink:#3166a5;--order-frame:#9ab9df;--order-fill:#f7faff; }
 [data-order-status="Confirmed"] { --order-ink:#7051a0;--order-frame:#b9a4d4;--order-fill:#fbf9fe; }
