@@ -1,4 +1,4 @@
-import { Workspace, Order, emptyWorkspace, localDate, shiftDate, orderTotal, balanceFor, customerSchema, categorySchema, menuSchema, orderSchema, paymentSchema, settingsSchema, menuLine, STATUSES } from "./domain";
+import { Workspace, Order, emptyWorkspace, localDate, shiftDate, orderTotal, balanceFor, customerSchema, categorySchema, menuSchema, orderSchema, paymentSchema, settingsSchema, menuLine, STATUSES, MENU_IMPORT_LIMIT, menuIdentity } from "./domain";
 export const DEMO_STORAGE_KEY="catering-desk-demo-v2";
 const uid=(n:number)=>"00000000-0000-4000-8000-"+String(n).padStart(12,"0");
 function randomId(){const b=crypto.getRandomValues(new Uint8Array(16));b[6]=(b[6]&15)|64;b[8]=(b[8]&63)|128;const h=[...b].map(n=>n.toString(16).padStart(2,"0")).join("");return [h.slice(0,8),h.slice(8,12),h.slice(12,16),h.slice(16,20),h.slice(20)].join("-");}
@@ -24,6 +24,22 @@ export function updateSample(current:Workspace,action:string,payload:Record<stri
     case "saveCustomer":{const c=customerSchema.parse(payload.data);if(c.id&&!w.customers.some(x=>x.id===c.id))throw new Error("Customer not found.");changedId=c.id??changedId;const old=w.customers.find(x=>x.id===c.id);w.customers=w.customers.filter(x=>x.id!==c.id);w.customers.push({...c,id:changedId,createdAt:old?.createdAt??now});break;}
     case "deleteCustomer":{if(w.orders.some(x=>x.customerId===payload.id))throw new Error("Keep customers with orders to preserve your history.");w.customers=w.customers.filter(x=>x.id!==payload.id);break;}
     case "saveMenuItem":{const m=menuSchema.parse(payload.data);changedId=m.id??changedId;const old=w.menuItems.find(x=>x.id===m.id);if(m.id&&!old)throw new Error("Menu item not found.");const variations=m.variations.map(v=>({...v,id:v.id??randomId()}));w.menuItems=w.menuItems.filter(x=>x.id!==m.id);w.menuItems.push({...m,id:changedId,variations,priceCents:variations[0]?.priceCents??m.priceCents,unit:variations[0]?.unit??m.unit,packWeightGrams:variations.length?variations[0].packWeightGrams:m.packWeightGrams,createdAt:old?.createdAt??now});break;}
+    case "importMenuItems":{
+      if(!Array.isArray(payload.items)||!payload.items.length||payload.items.length>MENU_IMPORT_LIMIT)throw new Error("Import between 1 and 500 menu rows at a time.");
+      // Validate the whole batch before adding anything to the cloned workspace.
+      const items=payload.items.map(item=>menuSchema.parse(item));
+      if(items.reduce((count,item)=>count+Math.max(1,item.variations.length),0)>MENU_IMPORT_LIMIT)throw new Error("Import up to 500 rows, including variations, at a time.");
+      const existing=new Set(w.menuItems.map(menuIdentity));let added=0;
+      for(const item of items){
+        const identity=menuIdentity(item);if(existing.has(identity))continue;
+        existing.add(identity);
+        const id=randomId(),variations=item.variations.map(v=>({...v,id:randomId()}));
+        if(!added)changedId=id;added++;
+        w.menuItems.push({...item,id,variations,priceCents:variations[0]?.priceCents??item.priceCents,unit:variations[0]?.unit??item.unit,packWeightGrams:variations.length?variations[0].packWeightGrams:item.packWeightGrams,createdAt:now});
+      }
+      if(!added)throw new Error("These items are already on your menu. There are no new items to import.");
+      break;
+    }
     case "saveOrder":{
       const o=orderSchema.parse(payload.data);changedId=o.id??changedId;const old=w.orders.find(x=>x.id===o.id);
       if(o.id&&!old)throw new Error("Order not found.");

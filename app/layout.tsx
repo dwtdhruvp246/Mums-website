@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./layout-refinements.css";
 import "./auth.css";
+import "./menu-import.css";
 
 export const metadata: Metadata = {
   title: "Catering Desk · Your catering workspace",

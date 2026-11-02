@@ -4,6 +4,7 @@ import type { PublicSupabaseConfig } from "../lib/supabase-config";
 import "../app/globals.css";
 import "../app/layout-refinements.css";
 import "../app/auth.css";
+import "../app/menu-import.css";
 
 declare const __CATERING_SUPABASE_CONFIG__:PublicSupabaseConfig;
 const config=__CATERING_SUPABASE_CONFIG__;

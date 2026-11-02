@@ -1,4 +1,4 @@
-import { readFile,writeFile,mkdir } from 'node:fs/promises';
+import { readFile,writeFile,mkdir,copyFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath,pathToFileURL } from 'node:url';
 import { build } from 'vite';
@@ -27,6 +27,7 @@ await build({
   build:{outDir:output,emptyOutDir:true,assetsDir:'pages-assets',sourcemap:false}
 });
 await writeFile(path.join(output,'.nojekyll'),'');
+await copyFile(path.join(root,'public/menu-import-template.xlsx'),path.join(output,'menu-import-template.xlsx'));
 console.log(JSON.stringify({result:'PASS',output,projectHost:new URL(config.url).hostname,publicConfigOnly:true}));
 
 async function readConfig(){

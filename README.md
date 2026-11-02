@@ -7,12 +7,19 @@ A home catering workspace for orders, customers, occasions, menus and kitchen pr
 - Editable occasion categories such as Diwali and Weddings.
 - Saved customers with optional phone numbers and automatic contact details in new orders.
 - Menu items with their own sizes, variations, prices, units and pack weights.
+- Excel template download, bulk menu upload and review with row-specific errors and duplicate prevention.
 - Dashboard calendar, clearly bordered orders, status colours, pack counts and preparation totals.
 - Orders, kitchen preparation, customer records, payments, printing and CSV export.
 - Alphabetical menu items and dropdown lists; black body text and responsive layouts.
 - Email/password sign-in only. Accounts are created by the administrator in Supabase Auth.
 - Persistent sessions with automatic token refresh and no application inactivity sign-out timer.
 - One Supabase workspace per user, enforced by database row-level security. A revision check prevents stale devices from silently overwriting newer changes.
+
+## Bulk menu import
+
+On **Menu**, download the Excel template, fill the **Menu items** sheet, and upload the `.xlsx` file. The **Guide & examples** sheet explains each column and is never imported. Use one row per plain item, or one row per variation with the same item name and food group. Every variation keeps its own price, unit and optional pack weight.
+
+Review the upload before clicking **Import**. Existing items with the same name and food group are skipped, including archived items; imports never update existing prices or order history. All row errors must be corrected before saving. The validated new items save in one workspace update, subject to the same revision check as manual edits. Files support up to 500 data rows, including variation rows, and 2 MB. Prices use the workspace currency; paste values rather than formulas.
 
 ## Supabase setup
 
@@ -48,6 +55,7 @@ Without Supabase configuration, `/` shows an honest, disabled sign-in preview. `
 pnpm exec tsc --noEmit
 pnpm verify:catering
 pnpm verify:auth
+pnpm verify:menu-import
 pnpm build
 ```
 
@@ -66,7 +74,7 @@ pnpm build:pages
 
 If those environment values are absent, the script accepts a JSON object on stdin containing `url` and `publishableKey`. It validates the key and rejects privileged credentials. The generated files are placed in `.sites-runtime/github-pages/`.
 
-For the repository's existing **Deploy from a branch → main → / (root)** setup, publish the contents of that output directory at the repository root: `index.html`, `.nojekyll` and `pages-assets/`. Rebuild and publish these generated files whenever the app source changes. Relative asset URLs support the `/Mums-website/` project path. The source entry point is `web/main.tsx`; do not edit the generated bundle directly.
+For the repository's existing **Deploy from a branch → main → / (root)** setup, publish the contents of that output directory at the repository root: `index.html`, `.nojekyll`, `menu-import-template.xlsx` and `pages-assets/`. Rebuild and publish these generated files whenever the app source changes. Relative asset URLs support the `/Mums-website/` project path. The source entry point is `web/main.tsx`; do not edit the generated bundle directly.
 
 The root `index.html` opens the application instead of GitHub's generated README page. GitHub Pages serves the public sign-in screen; orders and customer records remain protected in Supabase. It does not use the Worker `/api/auth/config` endpoint or the private Sites access gate.
 

@@ -12,6 +12,8 @@ export type LineItem = {name:string; quantity:number; unit:string; priceCents:nu
 export type Order = {id:string; orderNumber:string; customerId:string; categoryId?:string; date:string; time:string; fulfilment:"Collection"|"Delivery"; address:string; occasion:string; notes:string; status:Status; items:LineItem[]; discountCents:number; deliveryFeeCents:number; totalCents:number; createdAt:string};
 export type Payment = {id:string; orderId:string; amountCents:number; method:string; date:string; note:string; createdAt:string};
 export type Workspace = {settings:BusinessSettings; categories:Category[]; customers:Customer[]; menuItems:MenuItem[]; orders:Order[]; payments:Payment[]};
+export const MENU_IMPORT_LIMIT=500;
+export function menuIdentity(item:Pick<MenuItem,"name"|"category">){return JSON.stringify([item.name.trim().toLowerCase(),item.category.trim().toLowerCase()]);}
 export const DEFAULT_SETTINGS:BusinessSettings = {businessName:"My Catering Kitchen",currency:"USD",phone:"",address:""};
 export const emptyWorkspace = ():Workspace => ({settings:{...DEFAULT_SETTINGS},categories:[],customers:[],menuItems:[],orders:[],payments:[]});
 const short=z.string().trim().max(160),note=z.string().trim().max(3000).default(""),optionalId=z.string().uuid().optional(),cents=z.number().int().min(0).max(100_000_000);
