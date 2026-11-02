@@ -1,5 +1,7 @@
 -- Run once in the catering Supabase project's SQL editor.
--- This migration creates new tables only; it does not import browser demo data.
+-- Version matches the applied Supabase migration history.
+-- Creates the workspace and closes API access to the automatic-RLS helper.
+-- No browser demo data is imported.
 begin;
 
 create table public.catering_workspaces (
@@ -59,5 +61,14 @@ create trigger catering_workspace_revision_before_update
 
 comment on table public.catering_workspaces is
   'One private catering workspace per Supabase Auth user. RLS isolates accounts; revision prevents stale-device overwrites.';
+
+-- Keep Supabase's automatic-RLS event trigger active, with no public RPC access.
+do $$
+begin
+  if pg_catalog.to_regprocedure('public.rls_auto_enable()') is not null then
+    revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+  end if;
+end;
+$$;
 
 commit;

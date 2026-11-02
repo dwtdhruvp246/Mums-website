@@ -125,8 +125,11 @@ try {
     create schema auth; create table auth.users(id uuid primary key);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;
-    insert into auth.users values('${A}'),('${B}');`);
-  await db.exec(await readFile('supabase/migrations/202611020001_private_workspaces.sql','utf8'));
+    insert into auth.users values('${A}'),('${B}');
+    create function public.rls_auto_enable() returns event_trigger language plpgsql security definer set search_path='pg_catalog' as $$ begin return; end; $$;`);
+  await db.exec(await readFile('supabase/migrations/20261102150707_private_workspaces.sql','utf8'));
+  const helper=await db.query("select has_function_privilege('anon','public.rls_auto_enable()','EXECUTE') as anon, has_function_privilege('authenticated','public.rls_auto_enable()','EXECUTE') as authenticated");
+  check(!helper.rows[0].anon&&!helper.rows[0].authenticated,'Automatic-RLS event helper has no public RPC access');
   const as=async id=>{await db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${id}',false);`);};
   await as(A);
   const inserted=await db.query('insert into public.catering_workspaces(user_id) values($1) returning data,revision',[A]);

@@ -1,6 +1,6 @@
 # Catering Desk: sign-in and private workspaces
 
-The application is prepared for email/password sign-in using accounts you create in Supabase Authentication. It has no registration screen, no sign-up call and no inactivity sign-out timer. Live sign-in is unavailable until the project configuration and database migration are applied.
+The application uses email/password sign-in with accounts you create in Supabase Authentication. It has no registration screen, no sign-up call and no inactivity sign-out timer. The CateringDesk project (`utowoqurrpbcetnctreo`) is connected and the workspace migration is applied. Backend sign-ups were still enabled at the last check; turn them off and verify the session settings below before adding real users. A real-account browser sign-in test remains pending.
 
 ## 1. Select the catering project
 
@@ -17,7 +17,7 @@ Configure these values through the Site's runtime environment settings and deplo
 
 ## 2. Create the private workspace table
 
-Run `supabase/migrations/202611020001_private_workspaces.sql` once in the project's SQL editor. Keep its transaction intact. An existing-table error means it has already been applied or there is a naming conflict; preserve existing data and inspect the error instead of dropping the table.
+For a fresh project, run `supabase/migrations/20261102150707_private_workspaces.sql` once in its SQL editor. Keep its transaction intact. This migration is already applied to CateringDesk; do not run it again there. An existing-table error means it has already been applied or there is a naming conflict; preserve existing data and inspect the error instead of dropping the table.
 
 The table stores the current catering records as one document per Auth account, matching the app's existing workspace model. The `user_id` primary key also references `auth.users.id`. A first successful login creates an empty workspace with no sample orders or customers. Subsequent logins, including other devices, load the same account's records.
 
@@ -61,6 +61,8 @@ Use two test accounts you control before entering real business data:
 8. Try an unregistered email and confirm sign-in fails. Confirm there is no sign-up screen.
 
 Local tests exercise the actual workspace migration with two synthetic database users and run the session/storage tests. They are not a substitute for these hosted checks with your Supabase project.
+
+The optional `supabase/tests/private_workspaces.sql` checks the live table under separate database roles using two temporary identities. It rolls back every test record, creates no usable sign-in credentials, and sends no email. Run the complete script, including its final `ROLLBACK`; it does not test a real user's password or browser session.
 
 ## PWA after setup
 

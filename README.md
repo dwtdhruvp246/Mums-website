@@ -24,7 +24,7 @@ Follow [docs/supabase-setup.md](docs/supabase-setup.md). Configure the project U
 | `SUPABASE_PUBLISHABLE_KEY` | Public publishable key |
 | `SUPABASE_ANON_KEY` | Legacy public anon key, used instead of the publishable key |
 
-Run [the workspace migration](supabase/migrations/202611020001_private_workspaces.sql) in the selected project's SQL editor. Disable new sign-ups in Supabase Auth, create the intended users yourself, and leave inactivity/time-box session limits disabled. Keep standard JWT expiration and refresh protection.
+Run [the workspace migration](supabase/migrations/20261102150707_private_workspaces.sql) once in a fresh project's SQL editor. It is already applied to the connected CateringDesk project. Disable new sign-ups in Supabase Auth, create the intended users yourself, and leave inactivity/time-box session limits disabled. Keep standard JWT expiration and refresh protection.
 
 Project configuration alone does not install the schema or change Auth settings. Verify both, then test sign-in and account isolation using two administrator-created test accounts before using real business records. Temporary network failures show a retry state; they never replace records with sample data.
 
