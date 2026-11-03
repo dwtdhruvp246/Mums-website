@@ -43,7 +43,19 @@ export function orderTotal(o:{items:LineItem[];discountCents:number;deliveryFeeC
 export function paidFor(orderId:string,payments:Payment[]){return payments.filter(p=>p.orderId===orderId).reduce((s,p)=>s+p.amountCents,0);}
 export function balanceFor(o:Order,payments:Payment[]){return Math.max(0,o.totalCents-paidFor(o.id,payments));}
 export function activeOrder(o:Order){return o.status!=="Completed"&&o.status!=="Cancelled";}
-export function ordersOnDate(w:Workspace,date:string,categoryId="All"){return w.orders.filter(o=>o.date===date&&o.status!=="Cancelled"&&(categoryId==="All"||o.categoryId===categoryId)).sort((a,b)=>a.time.localeCompare(b.time));}
+export function ordersOnDate(w:Workspace,date:string,categoryId="All"){return w.orders.filter(o=>o.date===date&&o.status!=="Cancelled"&&(categoryId==="All"||(o.categoryId??"")===categoryId)).sort((a,b)=>a.time.localeCompare(b.time));}
+
+export function summarizeOrderCategories(orders: readonly Order[]) {
+  const groups = new Map<string, { id: string; count: number; firstOrder: Order }>();
+  const byDueTime = [...orders].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  for (const order of byDueTime) {
+    const id = order.categoryId ?? "";
+    const group = groups.get(id);
+    if (group) group.count += 1;
+    else groups.set(id, { id, count: 1, firstOrder: order });
+  }
+  return [...groups.values()];
+}
 export function lineLabel(item:Pick<LineItem,"name"|"variationName">){return item.name+(item.variationName?" — "+item.variationName:"");}
 const quantityNumber=(n:number)=>new Intl.NumberFormat("en-GB",{maximumFractionDigits:3}).format(n);
 export function unitLabel(unit:string,n:number){return n===1||isWeightUnit(unit)?unit:unit==="box"?"boxes":unit.endsWith("s")?unit:unit+"s";}

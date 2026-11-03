@@ -7,9 +7,21 @@ const target=path.resolve('.sites-runtime/demo-verification');await mkdir(target
 try {
 for(const name of ['domain','demo']){let code=ts.transpileModule(await readFile('lib/'+name+'.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText;code=code.replace('from "./domain"','from "./domain.mjs"');await writeFile(path.join(target,name+'.mjs'),code);}
 const {sampleWorkspace,updateSample}=await import(pathToFileURL(path.join(target,'demo.mjs')));
-const {ordersOnDate,aggregateItems,localDate,shiftDate,balanceFor,orderTotal,menuLine,lineLabel,menuSchema,quantityLabel,lineWeightGrams,lineSchema,aggregateWeights}=await import(pathToFileURL(path.join(target,'domain.mjs')));
+const {ordersOnDate,summarizeOrderCategories,aggregateItems,localDate,shiftDate,balanceFor,orderTotal,menuLine,lineLabel,menuSchema,quantityLabel,lineWeightGrams,lineSchema,aggregateWeights}=await import(pathToFileURL(path.join(target,'domain.mjs')));
 let checks=0,w=sampleWorkspace();function check(value,label){assert.ok(value,label);checks++;}
 const today=localDate(),diwali=w.categories.find(c=>c.name==='Diwali').id;
+const wedding=w.categories.find(c=>c.name==='Weddings').id;
+const uncategorised={...w.orders[0],categoryId:undefined,date:today,time:'10:00'};
+const categoryOrders=[
+  {...w.orders[0],categoryId:diwali,date:shiftDate(today,1),time:'08:00'},
+  {...w.orders[0],categoryId:wedding,date:today,time:'15:00'},
+  uncategorised,
+  {...w.orders[0],categoryId:wedding,date:today,time:'09:00'},
+];
+const categorySummary=summarizeOrderCategories(categoryOrders);
+check(categorySummary.map(group=>group.id).join('|')===[wedding,'',diwali].join('|'),'Category boxes sort by earliest due date and time, including uncategorised orders');
+check(categorySummary[0].count===2&&categorySummary[0].firstOrder.time==='09:00','Category count and earliest time include all orders in the group');
+check(ordersOnDate({...w,orders:categoryOrders},today,'')[0]===uncategorised,'The dashboard can filter older uncategorised orders');
 check(w.categories.length===5,'Five editable occasion categories');check(w.customers.length===6,'Sample customers');check(ordersOnDate(w,today).length===4,'Dashboard selects today only');check(ordersOnDate(w,shiftDate(today,1)).length===2,'Changing date selects different orders');check(ordersOnDate(w,today,diwali).length===3,'Date and category filters combine');
 let items=aggregateItems(ordersOnDate(w,today));check(items.find(i=>i.name==='Kaju katli'&&i.variationName==='By weight').quantity===3,'Loose sweets kilograms correctly combined');check(items.find(i=>i.name==='Vegetable samosas').quantity===50,'Snack pieces correctly combined');check(items.find(i=>i.name==='Kaju katli'&&i.variationName==='By weight').orderCount===2,'Distinct contributing orders counted');
 const mixed=structuredClone(w.orders[0]);mixed.items=[{name:'Same name',quantity:1,unit:'kg',priceCents:100},{name:'Same name',quantity:3,unit:'piece',priceCents:100}];check(aggregateItems([mixed]).length===2,'Different units are never added together');

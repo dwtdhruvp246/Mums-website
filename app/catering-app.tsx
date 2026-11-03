@@ -12,6 +12,7 @@ import MenuCard from "./menu-card";
 import MenuBulkImport from "./menu-bulk-import";
 import ItemQuantity from "./item-quantity";
 import PreparationTotals from "./preparation-totals";
+import OrderCategoryBoxes from "./order-category-boxes";
 import { alphabetical } from "../lib/alphabetical";
 import type { WorkspaceRepository } from "../lib/workspace-repository";
 
@@ -82,7 +83,13 @@ export default function CateringApp({preview=false,repository,accountEmail,onSig
   const outstanding=w.orders.filter(o=>o.status!=="Cancelled").reduce((s,o)=>s+balanceFor(o,w.payments),0);
   const monthReceived=w.payments.filter(p=>p.date.slice(0,7)===today.slice(0,7)).reduce((s,p)=>s+p.amountCents,0);
   const selectedOrder=modal?.id?w.orders.find(o=>o.id===modal.id):undefined;
-  const filteredOrders=w.orders.filter(o=>(categoryFilter==="All"||o.categoryId===categoryFilter)&&(filter==="All"||(filter==="Active"?activeOrder(o):o.status===filter))&&[customerName(w,o.customerId),o.orderNumber,o.occasion,w.categories.find(c=>c.id===o.categoryId)?.name??"",...o.items.map(lineLabel)].join(" ").toLowerCase().includes(search.toLowerCase()));
+  const matchingOrders = w.orders.filter(order => {
+    const matchesStatus = filter === "All" || (filter === "Active" ? activeOrder(order) : order.status === filter);
+    const category = w.categories.find(entry => entry.id === order.categoryId);
+    const searchText = [customerName(w, order.customerId), order.orderNumber, order.occasion, category?.name ?? "", ...order.items.map(lineLabel)];
+    return matchesStatus && searchText.join(" ").toLowerCase().includes(search.toLowerCase());
+  });
+  const filteredOrders = matchingOrders.filter(order => categoryFilter === "All" || (order.categoryId ?? "") === categoryFilter);
   const selectedDayOrders=w.orders.filter(o=>o.date===kitchenDate&&activeOrder(o));
   const prep=prepItems(selectedDayOrders),prepWeights=aggregateWeights(selectedDayOrders);
   const modalTitle=modal?.type==="order"?selectedOrder?.orderNumber??"Order":modal?.type==="orderForm"?(modal.id?"Edit order":"New order"):modal?.type==="customer"?(modal.id?"Edit customer":"New customer"):modal?.type==="category"?(modal.id?"Edit category":"New category"):modal?.type==="menu"?(modal.id?"Edit menu item":"New menu item"):"Record payment";
@@ -99,9 +106,12 @@ export default function CateringApp({preview=false,repository,accountEmail,onSig
             {page==="Dashboard"&&<DateDashboard w={w} date={dashboardDate} onDate={setDashboardDate} categoryId={categoryFilter} onCategory={setCategoryFilter} onOrder={id=>open("order",id)} onNewOrder={()=>open("orderForm")} onPrint={()=>print({type:"kitchen",date:dashboardDate,categoryId:categoryFilter,allDue:true})}/>}
             {page==="Categories"&&<CategoriesPage w={w} onEdit={id=>open("category",id)} onNewOrder={categoryId=>open("orderForm",undefined,categoryId)} onViewOrders={categoryId=>{go("Orders");setCategoryFilter(categoryId);}}/>}
             {page==="Orders"&&<div className="orders-page">
-              <section className="panel order-filters" aria-label="Order filters"><div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search customer, order or dish…"/><div className="toolbar-right"><span className="small-text muted">{filteredOrders.length} {filteredOrders.length===1?"order":"orders"}</span><select aria-label="Order category filter" value={categoryFilter} onChange={e=>setCategoryFilter(e.target.value)}><option value="All">All categories</option>{alphabetical(w.categories,c=>c.name).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><label className="sr-only" htmlFor="order-filter">Filter orders by status</label><select id="order-filter" value={filter} onChange={e=>setFilter(e.target.value)}>{alphabetical(["All","Active",...STATUSES]).map(s=><option key={s}>{s}</option>)}</select></div></div></section>
+              <section className="panel order-filters" aria-label="Order filters"><div className="toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search customer, order or dish…"/><div className="toolbar-right"><span className="small-text muted">{filteredOrders.length} {filteredOrders.length===1?"order":"orders"}</span><label className="sr-only" htmlFor="order-filter">Filter orders by status</label><select id="order-filter" value={filter} onChange={e=>setFilter(e.target.value)}>{alphabetical(["All","Active",...STATUSES]).map(s=><option key={s}>{s}</option>)}</select></div></div></section>
               <div className="operations-grid orders-operations">
-                <section className="panel order-book" aria-label="Matching orders"><OrderTable orders={filteredOrders} w={w} onSelect={o=>open("order",o.id)} emptyAction={()=>open("orderForm")} filtered={!!search||filter!=="All"||categoryFilter!=="All"}/></section>
+                <section className="panel order-book" aria-label="Matching orders">
+                  <OrderCategoryBoxes orders={matchingOrders} categories={w.categories} selected={categoryFilter} onSelect={setCategoryFilter} />
+                  <OrderTable orders={filteredOrders} w={w} onSelect={o=>open("order",o.id)} emptyAction={()=>open("orderForm")} filtered={!!search||filter!=="All"||categoryFilter!=="All"}/>
+                </section>
                 <PreparationTotals orders={filteredOrders} scope="Based on the matching orders. Cancelled orders are excluded."/>
               </div>
             </div>}
