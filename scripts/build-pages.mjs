@@ -31,7 +31,7 @@ await copyFile(path.join(root,'public/menu-import-template.xlsx'),path.join(outp
 for(const file of ['sw.js','pwa-bootstrap.js','offline.html'])await copyFile(path.join(root,'public',file),path.join(output,file));
 await cp(path.join(root,'public/pwa'),path.join(output,'pwa'),{recursive:true});
 const manifest=JSON.parse(await readFile(path.join(root,'public/manifest.webmanifest'),'utf8'));
-manifest.related_applications[0].id='https://dwtdhruvp246.github.io/Mums-website/';
+manifest.related_applications[0].id=new URL(manifest.id,'https://dwtdhruvp246.github.io/').href;
 await writeFile(path.join(output,'manifest.webmanifest'),JSON.stringify(manifest,null,2)+'\n');
 console.log(JSON.stringify({result:'PASS',output,projectHost:new URL(config.url).hostname,publicConfigOnly:true}));
 

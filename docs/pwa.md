@@ -4,12 +4,14 @@ Install the business app from **https://dwtdhruvp246.github.io/Mums-website/**. 
 
 ## Installation
 
-- **Chrome / Edge:** choose **Install app** in the persistent strip when offered. Otherwise use the address-bar installation icon or browser menu installation command.
-- **Android:** browser menu → **Install app** or **Add to Home screen** → **Install**. Chrome is recommended for the full installed experience.
+- **Chrome / Edge:** choose **Install app** in the persistent strip, then confirm in the browser's installation dialog.
+- **Android:** open the site in a regular Chrome tab and tap **Install app**. The app does not direct users to the three-dot menu. Chrome may first require a page interaction and some viewing time before releasing its installation prompt; the button stays visible and reports preparation or readiness. If the first tap releases the prompt while user activation is still valid, the same tap opens confirmation. Otherwise tap the button when it reports readiness.
 - **iPhone / iPad:** open the link in Safari, tap **Share → Add to Home Screen → Add**. Keep **Open as Web App** enabled if Safari shows it. Open Catering Desk using the new Home Screen icon.
 - **Safari on Mac:** **File → Add to Dock → Add**.
 
-The app's installation strip contains no close button, Later action, or stored dismissal preference. Cancelling the browser's own installation dialog leaves the strip visible with manual steps. A browser controls its native dialog and can always allow cancellation.
+The app's installation strip always contains an **Install app** button, with no close button, Later action, or stored dismissal preference. Cancelling the browser's own installation dialog leaves the strip and button visible. A browser controls its native dialog and can always allow cancellation. A browser that exposes a direct `navigator.install()` API can open confirmation without waiting for a deferred offer; this is feature detected and optional.
+
+Unsupported browsers show relevant guidance only after the user taps the button. iOS still requires Safari's Share / Add to Home Screen flow; a website cannot install itself silently or bypass the browser's confirmation and installation restrictions.
 
 The strip hides after the browser confirms installation and whenever Catering Desk runs in standalone mode, including iOS's standalone flag. Supported browsers can also detect this app as an installed related application when visiting in a normal tab. Browsers without that capability, especially iOS, cannot reliably disclose an existing installation to a separate tab; use the installed Home Screen app to hide the strip. Nothing is permanently marked installed in local storage, so a subsequent uninstall can show the reminder again.
 
@@ -23,7 +25,7 @@ Worker updates wait until existing app windows/tabs close. They do not force-ref
 
 ## Hosting and checks
 
-The manifest uses relative scope, identity and launch paths. The native deployment serves it at `/manifest.webmanifest`; the Pages build keeps everything under `/Mums-website/`. `scripts/build-pages.mjs` sets the matching absolute related-app identity for GitHub Pages and copies all PWA assets into its output. Publish the entire build output.
+The manifest uses relative scope and launch paths. Its explicit `/` identity preserves the original `./` identity (the browser resolves `id` relative to the start URL's origin, unlike icon/scope URLs). The native deployment serves it at `/manifest.webmanifest`; the Pages build keeps its launch, scope and assets under `/Mums-website/`. `scripts/build-pages.mjs` sets the matching absolute related-app identity for GitHub Pages and copies all PWA assets into its output. Publish the entire build output.
 
 `pnpm verify:pwa` exercises installation acceptance/dismissal, early prompt capture, standalone and related-app detection, platform instructions, scope resolution, icon dimensions, cache isolation and offline navigation using synthetic browser/network fixtures. It performs no live account or database writes.
 

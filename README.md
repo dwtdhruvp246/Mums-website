@@ -83,6 +83,6 @@ The root `index.html` opens the application instead of GitHub's generated README
 
 ## PWA
 
-The PWA can be installed from the login screen or the workspace. The installation strip stays available until installation is confirmed and has no close or Later action. Browsers without an install prompt show the appropriate menu steps. See [docs/pwa.md](docs/pwa.md) for installation, browser limitations and update behavior.
+The PWA can be installed from the login screen or the workspace using the always-visible **Install app** button. The installation strip stays available until installation is confirmed and has no close or Later action. Android Chrome uses the browser's installation confirmation directly when available, with readiness feedback while the browser prepares its prompt. iOS and unsupported browsers receive relevant guidance after tapping the button. See [docs/pwa.md](docs/pwa.md) for installation, browser limitations and update behavior.
 
 Only public offline artwork and the connection-help page are cached. Orders, customer data, configuration and Auth requests are never cached by the service worker. Opening and saving a workspace requires an internet connection; existing Supabase session persistence remains in place.

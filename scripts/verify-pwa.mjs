@@ -27,11 +27,13 @@ try {
   }
   function invitation(outcome){return Object.assign(new Event('beforeinstallprompt',{cancelable:true}),{prompt:async()=>{},userChoice:Promise.resolve({outcome})});}
   const h=harness();
-  check(!h.state.installed&&!h.state.canPrompt,'An uninstalled visitor sees installation instructions before the browser offers a prompt');
+  check(!h.state.installed&&!h.state.canPrompt&&!h.state.message,'An uninstalled visitor starts with the install action and no menu instructions');
+  await h.controller.install();
+  check(!h.state.installed&&h.state.message.includes('preparing installation')&&!h.state.message.includes('menu'),'A tap before browser readiness gives feedback without directing users to a menu');
   const dismissed=invitation('dismissed');h.browser.dispatchEvent(dismissed);
   check(dismissed.defaultPrevented&&h.state.canPrompt,'Capture a browser invitation for the install button');
   await h.controller.install();
-  check(!h.state.installed&&!h.state.canPrompt&&h.state.message.includes('not completed'),'Cancelling the browser dialog keeps the reminder and manual instructions');
+  check(!h.state.installed&&!h.state.canPrompt&&h.state.message.includes('not completed'),'Cancelling the browser dialog keeps the reminder and the install action');
   h.browser.dispatchEvent(invitation('accepted'));await h.controller.install();
   check(!h.state.installed,'Accepting a prompt alone does not hide the message before installation is confirmed');
   h.browser.dispatchEvent(new Event('appinstalled'));
@@ -51,19 +53,40 @@ try {
   check(!unrelated.state.installed,'An unrelated installed app cannot hide the reminder');unrelated.controller.dispose();
   const failed=harness({...navigator,getInstalledRelatedApps:async()=>{throw new Error('restricted');}});await tick();
   check(!failed.state.installed,'Restricted installation detection still displays instructions');failed.controller.dispose();
-  const byId=harness({...navigator,getInstalledRelatedApps:async()=>[{platform:'webapp',id:'https://example.com/Mums-website/'}]});await tick();
-  check(byId.state.installed,'Related app identity respects a project subpath');byId.controller.dispose();
+  const byId=harness({...navigator,getInstalledRelatedApps:async()=>[{platform:'webapp',id:'https://example.com/'}]});await tick();
+  check(byId.state.installed,'Recognise the original computed app identity, resolved against the start origin');byId.controller.dispose();
   check(installInstructions({...navigator,userAgent:'iPhone Safari'}).includes('Share → Add to Home Screen'),'iPhone receives Home Screen instructions');
   check(installInstructions({...navigator,platform:'MacIntel',maxTouchPoints:5}).includes('Home Screen'),'iPad desktop browser mode receives iPad instructions');
   check(installInstructions({...navigator,userAgent:'Macintosh Safari'}).includes('Add to Dock'),'Mac Safari receives Dock instructions');
-  check(installInstructions({...navigator,userAgent:'Android Firefox'}).includes('Add to Home screen'),'Android receives browser menu instructions');
+  check(installInstructions({...navigator,userAgent:'Android Firefox'}).includes('Google Chrome'),'Unsupported Android browsers receive a direct-install alternative');
   check(installInstructions({...navigator,userAgent:'Firefox'}).includes('Chrome or Edge'),'Unsupported desktop browsers receive an actionable alternative');
+  check(!/menu|⋮|3 dots|address bar/.test(installInstructions({...navigator,userAgent:'Android Chrome'})),'Android Chrome is never sent to the three-dot menu');
+  let directCalls=0;
+  const direct=harness({...navigator,install:async()=>{directCalls++;}});
+  check(direct.state.canPrompt,'An available direct browser API needs no deferred event');
+  await direct.controller.install();check(directCalls===1&&direct.state.installed,'Direct install calls the browser exactly once and hides only after it resolves successfully');direct.controller.dispose();
+  const aborted=harness({...navigator,install:async()=>{throw Object.assign(new Error('cancelled'),{name:'AbortError'});}});
+  await aborted.controller.install();check(!aborted.state.installed&&aborted.state.message.includes('not completed'),'Cancelling a direct install leaves the persistent action visible');aborted.controller.dispose();
+  const rejected=harness({...navigator,install:async()=>{throw new Error('unavailable');}});
+  await rejected.controller.install();check(!rejected.state.installed&&rejected.state.message.includes('try Install app again'),'A failed direct install gives retry feedback without pretending to be installed');rejected.controller.dispose();
+  let sameTapCalls=0;
+  const sameTap=harness({...navigator,userActivation:{isActive:true}});
+  await sameTap.controller.install();
+  const offeredOnTap=invitation('dismissed');offeredOnTap.prompt=async()=>{sameTapCalls++;};sameTap.browser.dispatchEvent(offeredOnTap);await tick();
+  check(sameTapCalls===1,'If the first tap unlocks the browser offer, the same active gesture opens the prompt');sameTap.controller.dispose();
+  let delayedCalls=0;
+  const delayed=harness({...navigator,userActivation:{isActive:false}});
+  await delayed.controller.install();
+  const delayedOffer=invitation('dismissed');delayedOffer.prompt=async()=>{delayedCalls++;};delayed.browser.dispatchEvent(delayedOffer);await tick();
+  check(delayedCalls===0&&delayed.state.canPrompt&&delayed.state.message.includes('Ready to install'),'An offer after the original gesture expires waits for an explicit new tap');
+  await delayed.controller.install();check(delayedCalls===1,'The ready install button opens the browser confirmation directly');delayed.controller.dispose();
 
   const manifest=JSON.parse(await readFile(path.join(root,'public/manifest.webmanifest'),'utf8'));
   check(manifest.display==='standalone'&&manifest.prefer_related_applications===false,'Manifest opens a standalone web app');
   for(const origin of ['https://example.com/','https://example.com/Mums-website/']){
     const url=new URL('manifest.webmanifest',origin);
-    check(new URL(manifest.scope,url).href===origin&&new URL(manifest.start_url,url).href===origin&&new URL(manifest.id,url).href===origin,'Manifest identity, scope and launch stay inside the host path');
+    check(new URL(manifest.scope,url).href===origin&&new URL(manifest.start_url,url).href===origin,'Manifest scope and launch stay inside the host path');
+    check(new URL(manifest.id,new URL(origin).origin).href===new URL('/',origin).href,'Explicit id preserves the originally installed app identity on each origin');
     check(manifest.icons.every(icon=>new URL(icon.src,url).href.startsWith(origin+'pwa/')),'Icons resolve within the app path');
   }
   for(const [name,size] of [['icon-192',192],['icon-512',512],['maskable-512',512],['apple-touch-icon',180]]){

@@ -1,5 +1,5 @@
 {
-  "id": "./",
+  "id": "/",
   "name": "Catering Desk",
   "short_name": "Catering Desk",
   "description": "Your private catering workspace for orders, menus, customers and kitchen preparation.",
@@ -34,7 +34,7 @@
     {
       "platform": "webapp",
       "url": "./manifest.webmanifest",
-      "id": "https://dwtdhruvp246.github.io/Mums-website/"
+      "id": "https://dwtdhruvp246.github.io/"
     }
   ]
 }
