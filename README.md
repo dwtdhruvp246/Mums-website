@@ -14,6 +14,7 @@ A home catering workspace for orders, customers, occasions, menus and kitchen pr
 - Alphabetical menu items and dropdown lists; black body text and responsive layouts.
 - Email/password sign-in only. Accounts are created by the administrator in Supabase Auth.
 - Persistent sessions with automatic token refresh and no application inactivity sign-out timer.
+- Installable PWA with a persistent installation strip, platform-specific steps and no close or Later control.
 - One Supabase workspace per user, enforced by database row-level security. A revision check prevents stale devices from silently overwriting newer changes.
 
 ## Bulk menu import
@@ -57,6 +58,7 @@ pnpm exec tsc --noEmit
 pnpm verify:catering
 pnpm verify:auth
 pnpm verify:menu-import
+pnpm verify:pwa
 pnpm build
 ```
 
@@ -75,10 +77,12 @@ pnpm build:pages
 
 If those environment values are absent, the script accepts a JSON object on stdin containing `url` and `publishableKey`. It validates the key and rejects privileged credentials. The generated files are placed in `.sites-runtime/github-pages/`.
 
-For the repository's existing **Deploy from a branch → main → / (root)** setup, publish the contents of that output directory at the repository root: `index.html`, `.nojekyll`, `menu-import-template.xlsx` and `pages-assets/`. Rebuild and publish these generated files whenever the app source changes. Relative asset URLs support the `/Mums-website/` project path. The source entry point is `web/main.tsx`; do not edit the generated bundle directly.
+For the repository's existing **Deploy from a branch → main → / (root)** setup, publish all contents of that output directory at the repository root, including `index.html`, `.nojekyll`, `menu-import-template.xlsx`, `pages-assets/`, `manifest.webmanifest`, `pwa/`, `pwa-bootstrap.js`, `sw.js` and `offline.html`. Rebuild and publish these generated files whenever the app source changes. Relative asset URLs support the `/Mums-website/` project path. The source entry point is `web/main.tsx`; do not edit the generated bundle directly.
 
 The root `index.html` opens the application instead of GitHub's generated README page. GitHub Pages serves the public sign-in screen; orders and customer records remain protected in Supabase. It does not use the Worker `/api/auth/config` endpoint or the private Sites access gate.
 
 ## PWA
 
-The PWA will be added after live authentication is verified. No service worker or offline editing is enabled yet. Future caching must exclude Auth traffic, private records and configuration responses.
+The PWA can be installed from the login screen or the workspace. The installation strip stays available until installation is confirmed and has no close or Later action. Browsers without an install prompt show the appropriate menu steps. See [docs/pwa.md](docs/pwa.md) for installation, browser limitations and update behavior.
+
+Only public offline artwork and the connection-help page are cached. Orders, customer data, configuration and Auth requests are never cached by the service worker. Opening and saving a workspace requires an internet connection; existing Supabase session persistence remains in place.

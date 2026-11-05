@@ -15,6 +15,7 @@
     "verify:auth": "node scripts/verify-auth.mjs",
     "verify:catering": "node scripts/verify-catering.mjs",
     "verify:menu-import": "node scripts/verify-menu-import.mjs",
+    "verify:pwa": "node scripts/verify-pwa.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

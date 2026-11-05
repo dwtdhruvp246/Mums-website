@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "Catering Desk",
+  "short_name": "Catering Desk",
+  "description": "Your private catering workspace for orders, menus, customers and kitchen preparation.",
+  "lang": "en",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f6f8",
+  "theme_color": "#c74728",
+  "icons": [
+    { "src": "pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "pwa/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [
+    { "platform": "webapp", "url": "./manifest.webmanifest", "id": "https://catering-desk-parekh.vidz1705.chatgpt.site/" }
+  ]
+}

@@ -1,4 +1,4 @@
-import { readFile,writeFile,mkdir,copyFile } from 'node:fs/promises';
+import { readFile,writeFile,mkdir,copyFile,cp } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath,pathToFileURL } from 'node:url';
 import { build } from 'vite';
@@ -28,6 +28,11 @@ await build({
 });
 await writeFile(path.join(output,'.nojekyll'),'');
 await copyFile(path.join(root,'public/menu-import-template.xlsx'),path.join(output,'menu-import-template.xlsx'));
+for(const file of ['sw.js','pwa-bootstrap.js','offline.html'])await copyFile(path.join(root,'public',file),path.join(output,file));
+await cp(path.join(root,'public/pwa'),path.join(output,'pwa'),{recursive:true});
+const manifest=JSON.parse(await readFile(path.join(root,'public/manifest.webmanifest'),'utf8'));
+manifest.related_applications[0].id='https://dwtdhruvp246.github.io/Mums-website/';
+await writeFile(path.join(output,'manifest.webmanifest'),JSON.stringify(manifest,null,2)+'\n');
 console.log(JSON.stringify({result:'PASS',output,projectHost:new URL(config.url).hostname,publicConfigOnly:true}));
 
 async function readConfig(){
