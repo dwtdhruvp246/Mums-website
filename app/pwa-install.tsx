@@ -3,12 +3,24 @@ import { useEffect, useRef, useState } from "react";
 import { Download, Smartphone } from "lucide-react";
 import { observePwaInstall, type InstallState } from "../lib/pwa-install";
 
-export default function PwaInstall() {
+export default function PwaInstall({ installPageUrl }: { installPageUrl?: string } = {}) {
   const [state, setState] = useState<InstallState | null>(null);
   const banner = useRef<HTMLElement>(null);
   const installer = useRef<ReturnType<typeof observePwaInstall> | null>(null);
 
   useEffect(() => {
+    // Private previews are behind a separate access gate. Their button must open
+    // the real app instead of waiting for a prompt that cannot install that preview.
+    if (installPageUrl) {
+      const mode = window.matchMedia("(display-mode: standalone)");
+      const update = () => setState({
+        installed: mode.matches || (navigator as Navigator & { standalone?: boolean }).standalone === true,
+        canPrompt: false, prompting: false, message: "",
+      });
+      update();
+      mode.addEventListener("change", update);
+      return () => mode.removeEventListener("change", update);
+    }
     const manifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
     if (!manifest) return;
     const base = new URL("./", manifest.href);
@@ -20,7 +32,7 @@ export default function PwaInstall() {
       });
     }
     return () => { installer.current?.dispose(); installer.current = null; };
-  }, []);
+  }, [installPageUrl]);
 
   const visible = Boolean(state && !state.installed);
   useEffect(() => {
@@ -38,11 +50,13 @@ export default function PwaInstall() {
     <span className="pwa-install-icon" aria-hidden="true"><Smartphone size={23} /></span>
     <div className="pwa-install-copy">
       <h2>Install Catering Desk</h2>
-      <p>Add the app to your Home Screen for quick access to your catering workspace.</p>
+      <p>{installPageUrl ? "Open our mobile app link to install Catering Desk. Use your usual account to access the same workspace." : "Add the app to your Home Screen for quick access to your catering workspace."}</p>
       {state.message && <p className="pwa-install-status" role="status">{state.message}</p>}
     </div>
-    <button className="button primary pwa-install-button" type="button" disabled={state.prompting} onClick={() => void installer.current?.install()}>
+    {installPageUrl ? <a className="button primary pwa-install-button" href={installPageUrl} target="_blank" rel="noopener noreferrer" aria-label="Install app — opens the mobile app link">
+      <Download size={17} />Install app
+    </a> : <button className="button primary pwa-install-button" type="button" disabled={state.prompting} onClick={() => void installer.current?.install()}>
       <Download size={17} />{state.prompting ? "Installing…" : "Install app"}
-    </button>
+    </button>}
   </aside>;
 }

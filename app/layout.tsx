@@ -9,8 +9,6 @@ import "./pwa.css";
 export const metadata: Metadata = {
   title: "Catering Desk · Your catering workspace",
   description: "A private workspace for your catering orders, customers, menu and kitchen preparation.",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Catering Desk", statusBarStyle: "default" },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
@@ -26,8 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head><script src="/pwa-bootstrap.js" /></head>
-      <body className="antialiased"><PwaInstall />{children}</body>
+      <body className="antialiased"><PwaInstall installPageUrl="https://dwtdhruvp246.github.io/Mums-website/" />{children}</body>
     </html>
   );
 }

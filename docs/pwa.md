@@ -1,6 +1,8 @@
 # Catering Desk PWA
 
-Install the business app from **https://dwtdhruvp246.github.io/Mums-website/**. The private Sites preview is a separate origin with a separate installation and an additional ChatGPT access gate.
+Install the business app from **https://dwtdhruvp246.github.io/Mums-website/**. The `chatgpt.site` address is a private preview with an additional ChatGPT access gate. Its Install app action opens the public app link in a new tab, preserving any unsaved form in the preview. It does not wait for a native install prompt or register a worker on the protected preview.
+
+Use the GitHub Pages address on phones. Installation files must be accessible to the browser independently of the private preview's access gate. The public app still requires the user's normal Supabase sign-in to access their workspace; no session, account information or workspace data is passed through the install link.
 
 ## Installation
 
@@ -25,7 +27,7 @@ Worker updates wait until existing app windows/tabs close. They do not force-ref
 
 ## Hosting and checks
 
-The manifest uses relative scope and launch paths. Its explicit `/` identity preserves the original `./` identity (the browser resolves `id` relative to the start URL's origin, unlike icon/scope URLs). The native deployment serves it at `/manifest.webmanifest`; the Pages build keeps its launch, scope and assets under `/Mums-website/`. `scripts/build-pages.mjs` sets the matching absolute related-app identity for GitHub Pages and copies all PWA assets into its output. Publish the entire build output.
+The installable app's manifest uses relative scope and launch paths. Its explicit `/` identity preserves the original `./` identity (the browser resolves `id` relative to the start URL's origin, unlike icon/scope URLs). The Pages build keeps its launch, scope and assets under `/Mums-website/`. `scripts/build-pages.mjs` sets the matching absolute related-app identity for GitHub Pages and copies all PWA assets into its output. Publish the entire build output. The protected native preview deliberately omits installable-app metadata and links to the Pages app instead.
 
 `pnpm verify:pwa` exercises installation acceptance/dismissal, early prompt capture, standalone and related-app detection, platform instructions, scope resolution, icon dimensions, cache isolation and offline navigation using synthetic browser/network fixtures. It performs no live account or database writes.
 
